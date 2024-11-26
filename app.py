@@ -1,15 +1,39 @@
 import streamlit as st
 from data import load_data
-from model import train_model
-from components import list_articles, article_view
+from model import train_model, predict
+from components import article_view
+from db import init_db, insert_article, fetch_popular_articles, fetch_recent_articles
 
-# Load data and model
+# Initialize session state for articles and selected article
+if "popular_articles" not in st.session_state:
+    st.session_state["popular_articles"] = None
+if "recent_articles" not in st.session_state:
+    st.session_state["recent_articles"] = None
+if "selected_article" not in st.session_state:
+    st.session_state["selected_article"] = None
+
+# Load data from CSV
 data = load_data()
-model, vectorizer = train_model(data)
 
-# Define popular and recent articles
-popular_articles = data.head(5)  # Select top 5 articles as "popular"
-recent_articles = data.tail(5)   # Select bottom 5 articles as "recent"
+# Initialize the SQLite database with CSV data
+init_db(data)
+
+# Train model
+@st.cache_resource
+def get_trained_model(data):
+    return train_model(data)
+
+model, vectorizer = get_trained_model(data)
+
+# Fetch articles only if they are not already in session state
+if st.session_state["popular_articles"] is None:
+    st.session_state["popular_articles"] = fetch_popular_articles(limit=5)
+if st.session_state["recent_articles"] is None:
+    st.session_state["recent_articles"] = fetch_recent_articles(limit=5)
+
+# Use session state to access articles
+popular_articles = st.session_state["popular_articles"]
+recent_articles = st.session_state["recent_articles"]
 
 # App layout
 col1, col2 = st.columns([3, 2])
@@ -25,7 +49,13 @@ with col1:
         if title_input and content_input:
             combined_input = f"{title_input} {content_input}"
             prediction = predict(model, vectorizer, combined_input)
-            if prediction == "FAKE":
+
+            # Save to database
+            label = "FAKE" if prediction == "FAKE" else "REAL"
+            insert_article(title_input, content_input, label)
+
+            # Display result
+            if label == "FAKE":
                 st.error("This news is likely FAKE.")
             else:
                 st.success("This news is likely REAL.")
@@ -35,7 +65,17 @@ with col1:
 # Column 2: Popular and Recent Articles
 with col2:
     st.write("Popular Articles")
-    list_articles(popular_articles)  # Render popular articles
+    for article in popular_articles:
+        id, title, content, label, count = article
+        if st.button(f"{title} ({count})", key=f"popular_{id}"):
+            st.session_state["selected_article"] = {"title": title, "content": content, "label": label}
 
     st.write("Recent Articles")
-    list_articles(recent_articles)  # Render recent articles
+    for article in recent_articles:
+        id, title, content, label = article
+        if st.button(title, key=f"recent_{id}"):
+            st.session_state["selected_article"] = {"title": title, "content": content, "label": label}
+
+# Display selected article in a dialog
+if st.session_state["selected_article"]:
+    article_view(st.session_state["selected_article"])
