@@ -36,6 +36,14 @@ popular_articles = st.session_state["popular_articles"]
 recent_articles = st.session_state["recent_articles"]
 
 # App layout
+
+if (True): #TODO: add logic for detecting moderator account
+    notification_count = 3 #TODO: add logic for counting reports
+    sd = st.sidebar
+    with sd:
+        if st.button(f":material/mail: {notification_count} reports"):
+            st.write("list of reports") #TODO: add list of reports
+
 col1, col2 = st.columns([3, 2])
 
 # Column 1: Fake News Validation
