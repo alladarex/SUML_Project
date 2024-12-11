@@ -1,6 +1,8 @@
 import sqlite3
+import streamlit as st
 
 # Initialize SQLite database connection
+@st.cache_resource
 def init_db(csv_data):
     """Initialize the SQLite database without wiping existing user data."""
     conn = sqlite3.connect("articles.db")
