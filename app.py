@@ -1,7 +1,7 @@
 import streamlit as st
 from data import load_data
 from model import train_model, predict
-from components import article_view
+from components import article_view, report_dialog
 import sqlite3
 from db import (
     init_db,
@@ -24,6 +24,8 @@ if "selected_article" not in st.session_state:
     st.session_state["selected_article"] = None
 if "user" not in st.session_state:
     st.session_state["user"] = None  # Logged-in user (None means guest)
+if "reports" not in st.session_state:
+    st.session_state["reports"] = None
 
 st.session_state["selected_article"] = None
 
@@ -54,6 +56,8 @@ if st.session_state["popular_articles"] is None:
     st.session_state["popular_articles"] = fetch_popular_articles(limit=5)
 if st.session_state["recent_articles"] is None:
     st.session_state["recent_articles"] = fetch_recent_articles(limit=5)
+# if st.session_state["user"] and st.session_state["user"][3] == "admin" and st.session_state["reports"] is None:
+#     st.session_state["reports"] = fetch_all_reports()
 
 # Use session state to access articles
 popular_articles = st.session_state["popular_articles"]
@@ -91,13 +95,27 @@ else:
 
 # App layout
 
-if st.session_state["user"] and st.session_state["user"][3] == "admin": 
+if st.session_state["user"] and st.session_state["user"][3] == "admin":
     reports = fetch_all_reports()
     st.sidebar.button(f"{len(reports)} Reports")
     st.sidebar.write("Reports:")
+
     for report in reports:
         article_id, title, report_content, user_id = report
-        st.sidebar.button(f"{title} - Reported by User {user_id}", key=f"report_{article_id}")
+        if st.sidebar.button(f"{title} - Reported by User {user_id}", key=f"report_{article_id}_{user_id}"):
+            # Fetch current article label and content
+            conn = sqlite3.connect("articles.db")
+            c = conn.cursor()
+            c.execute("SELECT label, content FROM articles WHERE id = ?", (article_id,))
+            article_info = c.fetchone()
+            conn.close()
+
+            # Trigger the dialog
+            report_dialog(
+                {"user_id": user_id, "article_id": article_id, "report_content": report_content, "title": title},
+                article_label=article_info[0],
+                article_content=article_info[1]
+            )
 
 col1, col2 = st.columns([3, 2])
 

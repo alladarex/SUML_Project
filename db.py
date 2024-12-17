@@ -246,3 +246,34 @@ def fetch_all_reports():
     reports = c.fetchall()
     conn.close()
     return reports
+
+
+def delete_report(user_id, article_id):
+    """Delete a report from the database."""
+    conn = sqlite3.connect("articles.db")
+    c = conn.cursor()
+    c.execute("DELETE FROM reports WHERE user_id = ? AND article_id = ?", (user_id, article_id))
+    conn.commit()
+    conn.close()
+
+def delete_article(article_id):
+    """Delete an article from the database and its reports."""
+    conn = sqlite3.connect("articles.db")
+    c = conn.cursor()
+    c.execute("DELETE FROM articles WHERE id = ?", (article_id,))
+    c.execute("DELETE FROM reports WHERE article_id = ?", (article_id,))
+    conn.commit()
+    conn.close()
+
+def toggle_article_label(article_id):
+    """Toggle the label of an article between FAKE and REAL."""
+    conn = sqlite3.connect("articles.db")
+    c = conn.cursor()
+    c.execute("SELECT label FROM articles WHERE id = ?", (article_id,))
+    current_label = c.fetchone()[0]
+
+    new_label = "REAL" if current_label == "FAKE" else "FAKE"
+    c.execute("UPDATE articles SET label = ? WHERE id = ?", (new_label, article_id))
+    conn.commit()
+    conn.close()
+    return new_label  # Return the new label
