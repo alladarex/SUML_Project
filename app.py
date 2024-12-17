@@ -2,7 +2,18 @@ import streamlit as st
 from data import load_data
 from model import train_model, predict
 from components import article_view
-from db import init_db, insert_article, fetch_popular_articles, fetch_recent_articles
+import sqlite3
+from db import (
+    init_db,
+    insert_article,
+    fetch_popular_articles,
+    fetch_recent_articles,
+    register_user,
+    authenticate_user,
+    add_user_article_relation,
+    fetch_all_reports,
+    add_report
+)
 
 # Initialize session state for articles and selected article
 if "popular_articles" not in st.session_state:
@@ -11,12 +22,25 @@ if "recent_articles" not in st.session_state:
     st.session_state["recent_articles"] = None
 if "selected_article" not in st.session_state:
     st.session_state["selected_article"] = None
+if "user" not in st.session_state:
+    st.session_state["user"] = None  # Logged-in user (None means guest)
+
+st.session_state["selected_article"] = None
+
 
 # Load data from CSV
 data = load_data()
 
 # Initialize the SQLite database with CSV data
 init_db(data)
+
+# Helper function to get the guest user ID
+def get_guest_user_id():
+    conn = sqlite3.connect("articles.db")
+    c = conn.cursor()
+    guest_user_id = c.execute("SELECT id FROM users WHERE username = 'guest'").fetchone()[0]
+    conn.close()
+    return guest_user_id
 
 # Train model
 @st.cache_resource
@@ -35,14 +59,45 @@ if st.session_state["recent_articles"] is None:
 popular_articles = st.session_state["popular_articles"]
 recent_articles = st.session_state["recent_articles"]
 
+# User authentication
+if st.session_state["user"]: 
+    st.success(f"Welcome, {st.session_state['user'][1]} ({st.session_state['user'][3]})!")
+    if st.button("Logout"):
+        st.session_state["user"] = None
+else:
+    option = st.radio("Choose an option", ["Login", "Register"])
+
+    if option == "Login":
+        username = st.text_input("Username")
+        password = st.text_input("Password", type="password")
+        if st.button("Login"):
+            user = authenticate_user(username, password)
+            if user:
+                st.session_state["user"] = user
+                st.success("Login successful!")
+                st.rerun()
+            else:
+                st.error("Invalid username or password.")
+    elif option == "Register":
+        username = st.text_input("Choose a username")
+        password = st.text_input("Choose a password", type="password")
+        user_type = st.selectbox("User Type", ["normal", "admin"])
+        if st.button("Register"):
+            if register_user(username, password, user_type):
+                st.success("Registration successful! You can now log in.")
+            else:
+                st.error("Username already exists. Please choose another.")
+
+
 # App layout
 
-if (True): #TODO: add logic for detecting moderator account
-    notification_count = 3 #TODO: add logic for counting reports
-    sd = st.sidebar
-    with sd:
-        if st.button(f":material/mail: {notification_count} reports"):
-            st.write("list of reports") #TODO: add list of reports
+if st.session_state["user"] and st.session_state["user"][3] == "admin": 
+    reports = fetch_all_reports()
+    st.sidebar.button(f"{len(reports)} Reports")
+    st.sidebar.write("Reports:")
+    for report in reports:
+        article_id, title, report_content, user_id = report
+        st.sidebar.button(f"{title} - Reported by User {user_id}", key=f"report_{article_id}")
 
 col1, col2 = st.columns([3, 2])
 
@@ -58,9 +113,16 @@ with col1:
             combined_input = f"{title_input} {content_input}"
             prediction = predict(model, vectorizer, combined_input)
 
-            # Save to database
+            # Determine the user to associate the article with
+            if st.session_state["user"]:
+                user_id = st.session_state["user"][0]  # Logged-in user's ID
+            else:
+                user_id = get_guest_user_id()  # Guest user's ID
+
+            # Save the article and associate it with the user
             label = "FAKE" if prediction == "FAKE" else "REAL"
-            insert_article(title_input, content_input, label)
+            article_id = insert_article(title_input, content_input, label)
+            add_user_article_relation(user_id, article_id)
 
             # Display result
             if label == "FAKE":
@@ -74,9 +136,10 @@ with col1:
 with col2:
     st.write("Popular Articles")
     for article in popular_articles:
-        id, title, content, label, count = article
-        if st.button(f"{title} ({count})", key=f"popular_{id}"):
-            st.session_state["selected_article"] = {"title": title, "content": content, "label": label}
+        article_id, title, content, label, user_count = article
+        #st.write(f"{title} (Linked Users: {user_count})")
+        if st.button(f"View {title}", key=f"popular_{article_id}"):
+            st.session_state["selected_article"] = {"id": article_id, "title": title, "content": content, "label": label}
 
     st.write("Recent Articles")
     for article in recent_articles:
@@ -87,3 +150,4 @@ with col2:
 # Display selected article in a dialog
 if st.session_state["selected_article"]:
     article_view(st.session_state["selected_article"])
+    

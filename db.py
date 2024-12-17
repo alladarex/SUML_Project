@@ -39,6 +39,29 @@ def init_db(csv_data):
         )
     ''')
 
+        # Articles table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS articles (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            title TEXT NOT NULL,
+            content TEXT NOT NULL,
+            label TEXT NOT NULL
+        )
+    ''')
+
+    # Reports table
+    c.execute('''
+        CREATE TABLE IF NOT EXISTS reports (
+            user_id INTEGER NOT NULL,
+            article_id INTEGER NOT NULL,
+            report_content TEXT NOT NULL,
+            PRIMARY KEY (user_id, article_id),
+            FOREIGN KEY (user_id) REFERENCES users(id),
+            FOREIGN KEY (article_id) REFERENCES articles(id)
+        )
+    ''')
+
+
     # Insert articles into the database
     c.execute("DELETE FROM articles")  # Clear articles only
     for _, row in csv_data.iterrows():
@@ -193,3 +216,33 @@ def fetch_articles_for_user(user_id):
     articles = c.fetchall()
     conn.close()
     return articles
+
+
+def add_report(user_id, article_id, report_content):
+    """Add a report to the reports table."""
+    conn = sqlite3.connect("articles.db")
+    c = conn.cursor()
+
+    try:
+        c.execute('''
+            INSERT INTO reports (user_id, article_id, report_content)
+            VALUES (?, ?, ?)
+        ''', (user_id, article_id, report_content))
+        conn.commit()
+    except sqlite3.IntegrityError:
+        print("Report already exists for this user and article.")
+    finally:
+        conn.close()
+
+def fetch_all_reports():
+    """Fetch all reports from the database."""
+    conn = sqlite3.connect("articles.db")
+    c = conn.cursor()
+    c.execute('''
+        SELECT r.article_id, a.title, r.report_content, r.user_id
+        FROM reports r
+        INNER JOIN articles a ON r.article_id = a.id
+    ''')
+    reports = c.fetchall()
+    conn.close()
+    return reports
