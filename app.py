@@ -1,15 +1,13 @@
 import streamlit as st
 from data import load_data
 from model import train_model, predict
-from components import article_view
+from components import article_view, login_view, register_view
 import sqlite3
 from db import (
     init_db,
     insert_article,
     fetch_popular_articles,
     fetch_recent_articles,
-    register_user,
-    authenticate_user,
     add_user_article_relation
 )
 
@@ -60,27 +58,15 @@ if st.session_state["user"]:
     if st.button("Logout"):
         st.session_state["user"] = None
 else:
-    option = st.radio("Choose an option", ["Login", "Register"])
+    with st.container():
+        col1, col2, _ = st.columns([1, 1, 5])
+        with col1:
+            if st.button("Log in", use_container_width=True):
+                login_view()
+        with col2:
+            if st.button("Register", use_container_width=True):
+                register_view()
 
-    if option == "Login":
-        username = st.text_input("Username")
-        password = st.text_input("Password", type="password")
-        if st.button("Login"):
-            user = authenticate_user(username, password)
-            if user:
-                st.session_state["user"] = user
-                st.success("Login successful!")
-            else:
-                st.error("Invalid username or password.")
-    elif option == "Register":
-        username = st.text_input("Choose a username")
-        password = st.text_input("Choose a password", type="password")
-        user_type = st.selectbox("User Type", ["normal", "admin"])
-        if st.button("Register"):
-            if register_user(username, password, user_type):
-                st.success("Registration successful! You can now log in.")
-            else:
-                st.error("Username already exists. Please choose another.")
 
 # App layout
 col1, col2 = st.columns([3, 2])
