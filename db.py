@@ -1,5 +1,6 @@
 import sqlite3
 import streamlit as st
+import streamlit as st
 
 # Initialize SQLite database connection
 @st.cache_resource
@@ -39,16 +40,6 @@ def init_db(csv_data):
         )
     ''')
 
-        # Articles table
-    c.execute('''
-        CREATE TABLE IF NOT EXISTS articles (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            title TEXT NOT NULL,
-            content TEXT NOT NULL,
-            label TEXT NOT NULL
-        )
-    ''')
-
     # Reports table
     c.execute('''
         CREATE TABLE IF NOT EXISTS reports (
@@ -60,6 +51,7 @@ def init_db(csv_data):
             FOREIGN KEY (article_id) REFERENCES articles(id)
         )
     ''')
+
 
 
     # Insert articles into the database
@@ -81,9 +73,9 @@ def init_db(csv_data):
     for article_id in article_ids:
         c.execute("INSERT OR IGNORE INTO user_articles (user_id, article_id) VALUES (?, ?)", (guest_user_id, article_id[0]))
 
+
     conn.commit()
     conn.close()
-
 
 
 
@@ -92,8 +84,10 @@ def insert_article(title, content, label):
     c = conn.cursor()
     c.execute("INSERT INTO articles (title, content, label) VALUES (?, ?, ?)", (title, content, label))
     article_id = c.lastrowid
+    article_id = c.lastrowid
     conn.commit()
     conn.close()
+    return article_id
     return article_id
 
 def fetch_articles(limit=10):
@@ -106,6 +100,9 @@ def fetch_articles(limit=10):
     return rows
 
 def fetch_popular_articles(limit=5):
+    """
+    Fetch the most popular articles based on the number of users linked to each article.
+    """
     """
     Fetch the most popular articles based on the number of users linked to each article.
     """
@@ -123,7 +120,20 @@ def fetch_popular_articles(limit=5):
     ''', (limit,))
     
     articles = c.fetchall()
+    # Query to count how many users are linked to each article
+    c.execute('''
+        SELECT a.id, a.title, a.content, a.label, COUNT(ua.user_id) as user_count
+        FROM articles a
+        LEFT JOIN user_articles ua ON a.id = ua.article_id
+        GROUP BY a.id
+        ORDER BY user_count DESC, a.id ASC
+        LIMIT ?
+    ''', (limit,))
+    
+    articles = c.fetchall()
     conn.close()
+    return articles
+
     return articles
 
 
