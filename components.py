@@ -1,4 +1,5 @@
 import streamlit as st
+import matplotlib.pyplot as plt
 from db import authenticate_user, register_user, add_report, delete_report, delete_article, toggle_article_label
 
 @st.dialog("Article details", width="large")
@@ -27,6 +28,12 @@ def article_view(data):
                     st.success("Report sent.")
                 else:
                     st.warning("Report must be at least 20 characters long.")
+    # Data breakdown
+    if st.button("Data breakdown", key=f"data_breakdown_{data['title']}"):
+        st.session_state["data_breakdown"] = True
+    if st.session_state["data_breakdown"]:
+        data_breakdown(data)
+
 
 
 
@@ -121,3 +128,34 @@ def report_dialog(report, article_label, article_content):
                 st.session_state["action_taken"] = True
     else:
         st.success("Action completed successfully.")
+
+def data_breakdown(data):
+    col1, col2 = st.columns(2)
+    with col1:
+        st.write("Model accuracy")
+        labels = 'Correct','Incorrect'
+        sizes = ['4','3']
+        explode = [0.1,0]
+        fig1, ax1 = plt.subplots()
+        ax1.pie(sizes,explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.1,autopct='%1.1f%%',pctdistance=1.25)
+        ax1.axis('equal')
+
+        st.pyplot(fig1)
+    with col2:
+        st.write("Classification confidence")
+        labels = 'True', 'Fake'
+        sizes = ['4', '1']
+        explode = [0.1, 0]
+        fig1, ax1 = plt.subplots()
+        ax1.pie(sizes, explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.6,autopct='%1.1f%%',pctdistance=1.25)
+        ax1.axis('equal')
+
+        st.pyplot(fig1)
+    st.write("Probability of correct classification")
+    labels = 'Correct', 'Incorrect'
+    sizes = ['10', '1']
+    explode = [0.1, 0]
+    fig1, ax1 = plt.subplots()
+    ax1.pie(sizes, explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.6,autopct='%1.1f%%',pctdistance=1.25)
+    ax1.axis('equal')
+    st.pyplot(fig1)
