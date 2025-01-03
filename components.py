@@ -159,3 +159,6 @@ def data_breakdown(data):
     ax1.pie(sizes, explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.6,autopct='%1.1f%%',pctdistance=1.25)
     ax1.axis('equal')
     st.pyplot(fig1)
+
+    if st.button("Show less", key=f"show_less_{data['title']}"):
+        st.session_state["data_breakdown"] = False
