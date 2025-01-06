@@ -1,12 +1,15 @@
 import sqlite3
 import streamlit as st
-import streamlit as st
+import os
+
+standard_db_path = "articles.db"
 
 # Initialize SQLite database connection
 @st.cache_resource
-def init_db(csv_data):
+def init_db(csv_data, db_path=None):
     """Initialize the SQLite database without wiping existing user data."""
-    conn = sqlite3.connect("articles.db")
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
     # Create the articles table
@@ -52,8 +55,6 @@ def init_db(csv_data):
         )
     ''')
 
-
-
     # Insert articles into the database
     c.execute("DELETE FROM articles")  # Clear articles only
     for _, row in csv_data.iterrows():
@@ -73,43 +74,33 @@ def init_db(csv_data):
     for article_id in article_ids:
         c.execute("INSERT OR IGNORE INTO user_articles (user_id, article_id) VALUES (?, ?)", (guest_user_id, article_id[0]))
 
-
     conn.commit()
     conn.close()
 
-
-
-def insert_article(title, content, label):
-    conn = sqlite3.connect("articles.db")
+# Other functions (examples):
+def insert_article(title, content, label, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("INSERT INTO articles (title, content, label) VALUES (?, ?, ?)", (title, content, label))
     article_id = c.lastrowid
-    article_id = c.lastrowid
     conn.commit()
     conn.close()
     return article_id
-    return article_id
 
-def fetch_articles(limit=10):
-    """Fetch articles from the database."""
-    conn = sqlite3.connect("articles.db")
+def fetch_articles(limit=10, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("SELECT id, title, content, label FROM articles ORDER BY id DESC LIMIT ?", (limit,))
     rows = c.fetchall()
     conn.close()
     return rows
 
-def fetch_popular_articles(limit=5):
-    """
-    Fetch the most popular articles based on the number of users linked to each article.
-    """
-    """
-    Fetch the most popular articles based on the number of users linked to each article.
-    """
-    conn = sqlite3.connect("articles.db")
+def fetch_popular_articles(limit=5, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
-
-    # Query to count how many users are linked to each article
     c.execute('''
         SELECT a.id, a.title, a.content, a.label, COUNT(ua.user_id) as user_count
         FROM articles a
@@ -118,41 +109,23 @@ def fetch_popular_articles(limit=5):
         ORDER BY user_count DESC, a.id ASC
         LIMIT ?
     ''', (limit,))
-    
-    articles = c.fetchall()
-    # Query to count how many users are linked to each article
-    c.execute('''
-        SELECT a.id, a.title, a.content, a.label, COUNT(ua.user_id) as user_count
-        FROM articles a
-        LEFT JOIN user_articles ua ON a.id = ua.article_id
-        GROUP BY a.id
-        ORDER BY user_count DESC, a.id ASC
-        LIMIT ?
-    ''', (limit,))
-    
     articles = c.fetchall()
     conn.close()
     return articles
 
-    return articles
-
-
-
-def fetch_recent_articles(limit=5):
-    """Fetch the most recent articles based on the highest primary key (id)."""
-    conn = sqlite3.connect("articles.db")
+def fetch_recent_articles(limit=5, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
-
-    # Fetch articles ordered by 'id' in descending order
     c.execute("SELECT id, title, content, label FROM articles ORDER BY id DESC LIMIT ?", (limit,))
     rows = c.fetchall()
     conn.close()
     return rows
 
 
-def fetch_random_articles(limit=5):
-    """Fetch random articles from the database."""
-    conn = sqlite3.connect("articles.db")
+def fetch_random_articles(limit=5, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
     # Use SQL's RANDOM() to fetch random rows
@@ -161,9 +134,9 @@ def fetch_random_articles(limit=5):
     conn.close()
     return rows
 
-def register_user(username, password, user_type='normal'):
-    """Register a new user."""
-    conn = sqlite3.connect("articles.db")
+def register_user(username, password, user_type='normal', db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
     try:
@@ -180,9 +153,9 @@ def register_user(username, password, user_type='normal'):
         conn.close()
 
 
-def authenticate_user(username, password):
-    """Authenticate a user by username and password."""
-    conn = sqlite3.connect("articles.db")
+def authenticate_user(username, password, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
     c.execute("SELECT * FROM users WHERE username = ? AND password = ?", (username, password))
@@ -192,18 +165,10 @@ def authenticate_user(username, password):
     return user  # Returns user row if found, otherwise None
 
 
-# def add_user_article_relation(user_id, article_id):
-#     """Add a relation between a user and an article."""
-#     conn = sqlite3.connect("articles.db")
-#     c = conn.cursor()
 
-#     try:
-#         c.execute("INSERT OR IGNORE INTO user_articles (user_id, article_id) VALUES (?, ?)", (user_id, article_id))
-#         conn.commit()
-#     finally:
-#         conn.close()
-def add_user_article_relation(user_id, article_id):
-    conn = sqlite3.connect("articles.db")
+def add_user_article_relation(user_id, article_id, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("INSERT OR IGNORE INTO user_articles (user_id, article_id) VALUES (?, ?)", (user_id, article_id))
     conn.commit()
@@ -211,9 +176,9 @@ def add_user_article_relation(user_id, article_id):
 
 
 
-def fetch_articles_for_user(user_id):
-    """Fetch all articles linked to a specific user."""
-    conn = sqlite3.connect("articles.db")
+def fetch_articles_for_user(user_id, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
     c.execute('''
@@ -228,9 +193,9 @@ def fetch_articles_for_user(user_id):
     return articles
 
 
-def add_report(user_id, article_id, report_content):
-    """Add a report to the reports table."""
-    conn = sqlite3.connect("articles.db")
+def add_report(user_id, article_id, report_content, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
     try:
@@ -244,9 +209,9 @@ def add_report(user_id, article_id, report_content):
     finally:
         conn.close()
 
-def fetch_all_reports():
-    """Fetch all reports from the database."""
-    conn = sqlite3.connect("articles.db")
+def fetch_all_reports(db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute('''
         SELECT r.article_id, a.title, r.report_content, r.user_id
@@ -258,26 +223,26 @@ def fetch_all_reports():
     return reports
 
 
-def delete_report(user_id, article_id):
-    """Delete a report from the database."""
-    conn = sqlite3.connect("articles.db")
+def delete_report(user_id, article_id, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("DELETE FROM reports WHERE user_id = ? AND article_id = ?", (user_id, article_id))
     conn.commit()
     conn.close()
 
-def delete_article(article_id):
-    """Delete an article from the database and its reports."""
-    conn = sqlite3.connect("articles.db")
+def delete_article(article_id, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("DELETE FROM articles WHERE id = ?", (article_id,))
     c.execute("DELETE FROM reports WHERE article_id = ?", (article_id,))
     conn.commit()
     conn.close()
 
-def toggle_article_label(article_id):
-    """Toggle the label of an article between FAKE and REAL."""
-    conn = sqlite3.connect("articles.db")
+def toggle_article_label(article_id, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
     c.execute("SELECT label FROM articles WHERE id = ?", (article_id,))
     current_label = c.fetchone()[0]
