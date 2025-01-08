@@ -134,6 +134,8 @@ def data_breakdown(data):
     accuracy = float(st.session_state['accuracy'])
     confidence = 1-float(data['confidence'])
     likelyhood = accuracy*max(confidence,1-confidence)
+    if confidence == 0 or confidence == 1:
+        st.warning("this article's classification was chosen manually")
     col1, col2 = st.columns(2)
     with col1:
         st.write("Model accuracy")
