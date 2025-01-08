@@ -140,7 +140,10 @@ with col1:
 
             # Save the article and associate it with the user
             label = "FAKE" if prediction == "FAKE" else "REAL"
-            article_id = insert_article(title_input, content_input, label, confidence=model.predict_proba(vectorizer.transform([combined_input]).toarray())[0][0])
+            confidence = model.predict_proba(vectorizer.transform([combined_input]).toarray())[0][0]
+            confidence = max(0.04,confidence)
+            confidence = min(0.96,confidence)
+            article_id = insert_article(title_input, content_input, label, confidence=confidence)
             add_user_article_relation(user_id, article_id)
             # Display result
             if label == "FAKE":
