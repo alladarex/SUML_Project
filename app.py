@@ -26,8 +26,10 @@ if "user" not in st.session_state:
     st.session_state["user"] = None  # Logged-in user (None means guest)
 if "reports" not in st.session_state:
     st.session_state["reports"] = None
-
+if "data_breakdown" not in st.session_state:
+    st.session_state["data_breakdown"] = None
 st.session_state["selected_article"] = None
+st.session_state['accuracy'] = 1
 
 
 # Load data from CSV
@@ -57,8 +59,8 @@ def get_guest_user_id():
 def get_trained_model(data):
     return train_model(data)
 
-model, vectorizer = get_trained_model(data)
-
+model, vectorizer, accuracy = get_trained_model(data)
+st.session_state['accuracy'] = accuracy
 # Fetch articles only if they are not already in session state
 if st.session_state["popular_articles"] is None:
     st.session_state["popular_articles"] = fetch_popular_articles(limit=5)
@@ -138,11 +140,8 @@ with col1:
 
             # Save the article and associate it with the user
             label = "FAKE" if prediction == "FAKE" else "REAL"
-            article_id = insert_article(title_input, content_input, label)
+            article_id = insert_article(title_input, content_input, label, confidence=model.predict_proba(vectorizer.transform([combined_input]).toarray())[0][0])
             add_user_article_relation(user_id, article_id)
-            article_id = insert_article(title_input, content_input, label)
-            add_user_article_relation(user_id, article_id)
-
             # Display result
             if label == "FAKE":
                 st.error("This news is likely FAKE.")
@@ -155,16 +154,16 @@ with col1:
 with col2:
     st.write("Popular Articles")
     for article in popular_articles:
-        article_id, title, content, label, user_count = article
+        article_id, title, content, label, user_count, confidence = article
         #st.write(f"{title} (Linked Users: {user_count})")
         if st.button(f"View {title}", key=f"popular_{article_id}"):
-            st.session_state["selected_article"] = {"id": article_id, "title": title, "content": content, "label": label}
+            st.session_state["selected_article"] = {"id": article_id, "title": title, "content": content, "label": label, "confidence": confidence}
 
     st.write("Recent Articles")
     for article in recent_articles:
-        id, title, content, label = article
+        id, title, content, label, confidence = article
         if st.button(title, key=f"recent_{id}"):
-            st.session_state["selected_article"] = {"title": title, "content": content, "label": label}
+            st.session_state["selected_article"] = {"title": title, "content": content, "label": label, "confidence": confidence}
 
 # Display selected article in a dialog
 if st.session_state["selected_article"]:

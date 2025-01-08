@@ -2,6 +2,7 @@ import numpy as np
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.naive_bayes import MultinomialNB
+from sklearn.metrics import accuracy_score
 import streamlit as st
 
 @st.cache_resource
@@ -22,7 +23,12 @@ def train_model(data):
     model = MultinomialNB()
     model.fit(x_train, y_train)
 
-    return model, vectorizer
+    # Calculate accuracy on the test set
+    y_pred = model.predict(x_test)
+    accuracy = accuracy_score(y_test, y_pred)
+
+    # Return model, vectorizer, and accuracy
+    return model, vectorizer, accuracy
 
 def predict(model, vectorizer, text):
     transformed_text = vectorizer.transform([text]).toarray()

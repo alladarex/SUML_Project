@@ -28,6 +28,7 @@ def article_view(data):
                     st.success("Report sent.")
                 else:
                     st.warning("Report must be at least 20 characters long.")
+
     # Data breakdown
     if st.button("Data breakdown", key=f"data_breakdown_{data['title']}"):
         st.session_state["data_breakdown"] = True
@@ -130,11 +131,14 @@ def report_dialog(report, article_label, article_content):
         st.success("Action completed successfully.")
 
 def data_breakdown(data):
+    accuracy = float(st.session_state['accuracy'])
+    confidence = 1-float(data['confidence'])
+    likelyhood = accuracy*max(confidence,1-confidence)
     col1, col2 = st.columns(2)
     with col1:
         st.write("Model accuracy")
         labels = 'Correct','Incorrect'
-        sizes = ['4','3']
+        sizes = [accuracy,1-accuracy]
         explode = [0.1,0]
         fig1, ax1 = plt.subplots()
         ax1.pie(sizes,explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.1,autopct='%1.1f%%',pctdistance=1.25)
@@ -144,7 +148,7 @@ def data_breakdown(data):
     with col2:
         st.write("Classification confidence")
         labels = 'True', 'Fake'
-        sizes = ['4', '1']
+        sizes = [confidence,1-confidence]
         explode = [0.1, 0]
         fig1, ax1 = plt.subplots()
         ax1.pie(sizes, explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.6,autopct='%1.1f%%',pctdistance=1.25)
@@ -153,7 +157,7 @@ def data_breakdown(data):
         st.pyplot(fig1)
     st.write("Probability of correct classification")
     labels = 'Correct', 'Incorrect'
-    sizes = ['10', '1']
+    sizes = [likelyhood,1-likelyhood]
     explode = [0.1, 0]
     fig1, ax1 = plt.subplots()
     ax1.pie(sizes, explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.6,autopct='%1.1f%%',pctdistance=1.25)

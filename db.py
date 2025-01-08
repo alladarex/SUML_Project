@@ -1,21 +1,25 @@
 import sqlite3
 import streamlit as st
-import streamlit as st
+import os
+
+standard_db_path = "articles.db"
 
 # Initialize SQLite database connection
 @st.cache_resource
-def init_db(csv_data):
+def init_db(csv_data, db_path=None):
     """Initialize the SQLite database without wiping existing user data."""
-    conn = sqlite3.connect("articles.db")
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
 
-    # Create the articles table
+    # Create the articles table with the new 'confidence' column
     c.execute('''
         CREATE TABLE IF NOT EXISTS articles (
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             title TEXT NOT NULL,
             content TEXT NOT NULL,
-            label TEXT NOT NULL
+            label TEXT NOT NULL,
+            confidence REAL DEFAULT 1.0  -- New column added
         )
     ''')
 
@@ -52,13 +56,11 @@ def init_db(csv_data):
         )
     ''')
 
-
-
     # Insert articles into the database
     c.execute("DELETE FROM articles")  # Clear articles only
     for _, row in csv_data.iterrows():
-        c.execute("INSERT INTO articles (title, content, label) VALUES (?, ?, ?)",
-                  (row['title'], row['content'], row['label']))
+        c.execute("INSERT INTO articles (title, content, label, confidence) VALUES (?, ?, ?, ?)",
+                  (row['title'], row['content'], row['label'], row.get('confidence', 0.0)))
 
     # Ensure guest user exists
     c.execute("SELECT id FROM users WHERE username = 'guest'")
@@ -73,93 +75,82 @@ def init_db(csv_data):
     for article_id in article_ids:
         c.execute("INSERT OR IGNORE INTO user_articles (user_id, article_id) VALUES (?, ?)", (guest_user_id, article_id[0]))
 
-
     conn.commit()
     conn.close()
 
-
-
-def insert_article(title, content, label):
-    conn = sqlite3.connect("articles.db")
+# Other functions (examples):
+def insert_article(title, content, label, confidence=1.0, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    c.execute("INSERT INTO articles (title, content, label) VALUES (?, ?, ?)", (title, content, label))
-    article_id = c.lastrowid
+    c.execute("INSERT INTO articles (title, content, label, confidence) VALUES (?, ?, ?, ?)", (title, content, label, float(confidence)))
     article_id = c.lastrowid
     conn.commit()
     conn.close()
     return article_id
-    return article_id
 
-def fetch_articles(limit=10):
-    """Fetch articles from the database."""
-    conn = sqlite3.connect("articles.db")
+def fetch_articles(limit=10, db_path=None):
+    db_path = db_path or os.getenv("DB_PATH", standard_db_path)
+    conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    c.execute("SELECT id, title, content, label FROM articles ORDER BY id DESC LIMIT ?", (limit,))
+    c.execute("SELECT id, title, content, label, confidence FROM articles ORDER BY id DESC LIMIT ?", (limit,))
     rows = c.fetchall()
     conn.close()
     return rows
 
+
 def fetch_popular_articles(limit=5):
     """
     Fetch the most popular articles based on the number of users linked to each article.
-    """
-    """
-    Fetch the most popular articles based on the number of users linked to each article.
+    Include confidence for each article.
     """
     conn = sqlite3.connect("articles.db")
     c = conn.cursor()
 
-    # Query to count how many users are linked to each article
+    # Query to fetch articles with user count and confidence
     c.execute('''
-        SELECT a.id, a.title, a.content, a.label, COUNT(ua.user_id) as user_count
+        SELECT a.id, a.title, a.content, a.label, a.confidence, COUNT(ua.user_id) as user_count
         FROM articles a
         LEFT JOIN user_articles ua ON a.id = ua.article_id
         GROUP BY a.id
         ORDER BY user_count DESC, a.id ASC
         LIMIT ?
     ''', (limit,))
-    
-    articles = c.fetchall()
-    # Query to count how many users are linked to each article
-    c.execute('''
-        SELECT a.id, a.title, a.content, a.label, COUNT(ua.user_id) as user_count
-        FROM articles a
-        LEFT JOIN user_articles ua ON a.id = ua.article_id
-        GROUP BY a.id
-        ORDER BY user_count DESC, a.id ASC
-        LIMIT ?
-    ''', (limit,))
-    
+
     articles = c.fetchall()
     conn.close()
     return articles
 
-    return articles
-
-
 
 def fetch_recent_articles(limit=5):
-    """Fetch the most recent articles based on the highest primary key (id)."""
+    """
+    Fetch the most recent articles based on the highest primary key (id).
+    Include confidence for each article.
+    """
     conn = sqlite3.connect("articles.db")
     c = conn.cursor()
 
-    # Fetch articles ordered by 'id' in descending order
-    c.execute("SELECT id, title, content, label FROM articles ORDER BY id DESC LIMIT ?", (limit,))
+    # Fetch articles ordered by 'id' in descending order with confidence
+    c.execute("SELECT id, title, content, label, confidence FROM articles ORDER BY id DESC LIMIT ?", (limit,))
     rows = c.fetchall()
     conn.close()
     return rows
 
 
 def fetch_random_articles(limit=5):
-    """Fetch random articles from the database."""
+    """
+    Fetch random articles from the database.
+    Include confidence for each article.
+    """
     conn = sqlite3.connect("articles.db")
     c = conn.cursor()
 
-    # Use SQL's RANDOM() to fetch random rows
-    c.execute("SELECT id, title, content, label FROM articles ORDER BY RANDOM() LIMIT ?", (limit,))
+    # Use SQL's RANDOM() to fetch random rows with confidence
+    c.execute("SELECT id, title, content, label, confidence FROM articles ORDER BY RANDOM() LIMIT ?", (limit,))
     rows = c.fetchall()
     conn.close()
     return rows
+
 
 def register_user(username, password, user_type='normal'):
     """Register a new user."""
