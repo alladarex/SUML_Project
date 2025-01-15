@@ -1,0 +1,12 @@
+__pycache__/
+*.pyc
+*.pyo
+*.log
+
+mlruns/
+logs/
+
+test_articles.db
+*.tmp
+
+models/*.pkl

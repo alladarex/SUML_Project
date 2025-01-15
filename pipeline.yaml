@@ -1,0 +1,18 @@
+steps:
+  preprocess:
+    type: python_script
+    script: scripts/model.py
+    entry_point: train_model
+    parameters:
+      alpha: 1.0
+
+  train:
+    type: python_script
+    script: scripts/model.py
+    entry_point: train_model
+
+  evaluate:
+    type: python_script
+    script: scripts/model.py
+    entry_point: evaluate_model
+
