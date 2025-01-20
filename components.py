@@ -130,41 +130,54 @@ def report_dialog(report, article_label, article_content):
     else:
         st.success("Action completed successfully.")
 
+
 def data_breakdown(data):
     accuracy = float(st.session_state['accuracy'])
-    confidence = 1-float(data['confidence'])
-    likelyhood = accuracy*max(confidence,1-confidence)
+    confidence = 1 - float(data['confidence'])
+    likelyhood = accuracy * max(confidence, 1 - confidence)
+
     if confidence == 0 or confidence == 1:
-        st.warning("this article's classification was chosen manually")
+        st.warning("This article's classification was chosen manually")
+
     col1, col2 = st.columns(2)
+
     with col1:
         st.write("Model accuracy")
-        labels = 'Correct','Incorrect'
-        sizes = [accuracy,1-accuracy]
-        explode = [0.1,0]
-        fig1, ax1 = plt.subplots()
-        ax1.pie(sizes,explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.1,autopct='%1.1f%%',pctdistance=1.25)
-        ax1.axis('equal')
+        labels = ['Correct', 'Incorrect']
+        sizes = [accuracy, 1 - accuracy]
 
-        st.pyplot(fig1)
+        fig, ax = plt.subplots()
+        bars = ax.bar(labels, sizes, color=['green', 'red'])
+        ax.set_ylim(0, 1)  # Set the y-axis limit to 0-1
+        ax.set_ylabel('Proportion')
+        ax.set_title('Model Accuracy')
+        ax.bar_label(bars, labels=[f'{s * 100:.1f}%' for s in sizes], label_type='edge')
+        st.pyplot(fig)
+
     with col2:
         st.write("Classification confidence")
-        labels = 'True', 'Fake'
-        sizes = [confidence,1-confidence]
-        explode = [0.1, 0]
-        fig1, ax1 = plt.subplots()
-        ax1.pie(sizes, explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.6,autopct='%1.1f%%',pctdistance=1.25)
-        ax1.axis('equal')
+        labels = ['True', 'Fake']
+        sizes = [confidence, 1 - confidence]
 
-        st.pyplot(fig1)
+        fig, ax = plt.subplots()
+        bars = ax.bar(labels, sizes, color=['blue', 'orange'])
+        ax.set_ylim(0, 1)  # Set the y-axis limit to 0-1
+        ax.set_ylabel('Proportion')
+        ax.set_title('Classification Confidence')
+        ax.bar_label(bars, labels=[f'{s * 100:.1f}%' for s in sizes], label_type='edge')
+        st.pyplot(fig)
+
     st.write("Probability of correct classification")
-    labels = 'Correct', 'Incorrect'
-    sizes = [likelyhood,1-likelyhood]
-    explode = [0.1, 0]
-    fig1, ax1 = plt.subplots()
-    ax1.pie(sizes, explode=explode, labels=labels, shadow=True, startangle=90,labeldistance=.6,autopct='%1.1f%%',pctdistance=1.25)
-    ax1.axis('equal')
-    st.pyplot(fig1)
+    labels = ['Correct', 'Incorrect']
+    sizes = [likelyhood, 1 - likelyhood]
+
+    fig, ax = plt.subplots()
+    bars = ax.bar(labels, sizes, color=['green', 'red'])
+    ax.set_ylim(0, 1)  # Set the y-axis limit to 0-1
+    ax.set_ylabel('Proportion')
+    ax.set_title('Probability of Correct Classification')
+    ax.bar_label(bars, labels=[f'{s * 100:.1f}%' for s in sizes], label_type='edge')
+    st.pyplot(fig)
 
     if st.button("Show less", key=f"show_less_{data['title']}"):
         st.session_state["data_breakdown"] = False
