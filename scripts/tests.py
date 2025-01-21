@@ -1,7 +1,7 @@
 import pytest
-from db import init_db, insert_article, fetch_all_reports, toggle_article_label, add_report, delete_report, fetch_popular_articles, register_user, authenticate_user, fetch_random_articles
+from db import init_db, insert_article, fetch_all_reports, toggle_article_label, add_report, delete_report, register_user, authenticate_user, fetch_random_articles
 from data import load_data
-from model import train_model, predict, evaluate_model
+from model import train_model, evaluate_model
 import sqlite3
 import os
 import pandas as pd

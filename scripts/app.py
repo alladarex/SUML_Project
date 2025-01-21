@@ -8,11 +8,8 @@ from db import (
     insert_article,
     fetch_popular_articles,
     fetch_recent_articles,
-    register_user,
-    authenticate_user,
     add_user_article_relation,
-    fetch_all_reports,
-    add_report
+    fetch_all_reports
 )
 
 # Initialize session state for articles and selected article
@@ -44,13 +41,6 @@ def get_guest_user_id():
     conn.close()
     return guest_user_id
 
-# Helper function to get the guest user ID
-def get_guest_user_id():
-    conn = sqlite3.connect("articles.db")
-    c = conn.cursor()
-    guest_user_id = c.execute("SELECT id FROM users WHERE username = 'guest'").fetchone()[0]
-    conn.close()
-    return guest_user_id
 
 # Train model
 @st.cache_resource
