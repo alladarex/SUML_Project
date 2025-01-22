@@ -9,4 +9,3 @@ logs/
 test_articles.db
 *.tmp
 
-models/*.pkl
