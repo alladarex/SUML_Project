@@ -73,7 +73,8 @@ def init_db(csv_data, db_path=None):
     c.execute("SELECT id FROM articles")
     article_ids = c.fetchall()
     for article_id in article_ids:
-        c.execute("INSERT OR IGNORE INTO user_articles (user_id, article_id) VALUES (?, ?)", (guest_user_id, article_id[0]))
+        c.execute("INSERT OR IGNORE INTO user_articles (user_id, article_id) VALUES (?, ?)",
+                  (guest_user_id, article_id[0]))
 
     conn.commit()
     conn.close()
@@ -83,7 +84,8 @@ def insert_article(title, content, label, confidence=1.0, db_path=None):
     db_path = db_path or os.getenv("DB_PATH", standard_db_path)
     conn = sqlite3.connect(db_path)
     c = conn.cursor()
-    c.execute("INSERT INTO articles (title, content, label, confidence) VALUES (?, ?, ?, ?)", (title, content, label, float(confidence)))
+    c.execute("INSERT INTO articles (title, content, label, confidence) VALUES (?, ?, ?, ?)",
+              (title, content, label, float(confidence)))
     article_id = c.lastrowid
     conn.commit()
     conn.close()
@@ -158,7 +160,8 @@ def register_user(username, password, user_type='normal'):
     c = conn.cursor()
 
     try:
-        c.execute("INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)", (username, password, user_type))
+        c.execute("INSERT INTO users (username, password, user_type) VALUES (?, ?, ?)",
+                  (username, password, user_type))
         conn.commit()
         return True
     except sqlite3.IntegrityError as e:
@@ -253,7 +256,8 @@ def delete_report(user_id, article_id):
     """Delete a report from the database."""
     conn = sqlite3.connect("articles.db")
     c = conn.cursor()
-    c.execute("DELETE FROM reports WHERE user_id = ? AND article_id = ?", (user_id, article_id))
+    c.execute("DELETE FROM reports WHERE user_id = ? AND article_id = ?",
+              (user_id, article_id))
     conn.commit()
     conn.close()
 

@@ -1,4 +1,3 @@
-import sklearn.metrics
 import streamlit as st
 from data import load_data
 from model import train_model, predict
