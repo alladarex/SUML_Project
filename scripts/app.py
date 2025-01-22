@@ -1,3 +1,4 @@
+import sklearn.metrics
 import streamlit as st
 from data import load_data
 from model import train_model, predict
@@ -23,9 +24,10 @@ if "user" not in st.session_state:
     st.session_state["user"] = None  # Logged-in user (None means guest)
 if "reports" not in st.session_state:
     st.session_state["reports"] = None
-
+if "data_breakdown" not in st.session_state:
+    st.session_state["data_breakdown"] = None
 st.session_state["selected_article"] = None
-
+st.session_state['accuracy'] = 1
 
 # Load data from CSV
 data = load_data()
@@ -47,7 +49,8 @@ def get_guest_user_id():
 def get_trained_model(data):
     return train_model(data, alpha=0.1)
 
-model, vectorizer = get_trained_model(data)
+model, vectorizer, accuracy= get_trained_model(data)
+st.session_state['accuracy'] = accuracy
 
 # Fetch articles only if they are not already in session state
 if st.session_state["popular_articles"] is None:
@@ -145,16 +148,16 @@ with col1:
 with col2:
     st.write("Popular Articles")
     for article in popular_articles:
-        article_id, title, content, label, user_count = article
+        article_id, title, content, label, user_count, confidence = article
         #st.write(f"{title} (Linked Users: {user_count})")
         if st.button(f"View {title}", key=f"popular_{article_id}"):
-            st.session_state["selected_article"] = {"id": article_id, "title": title, "content": content, "label": label}
+            st.session_state["selected_article"] = {"id": article_id, "title": title, "content": content, "label": label, "confidence": confidence}
 
     st.write("Recent Articles")
     for article in recent_articles:
-        id, title, content, label = article
+        id, title, content, label, confidence = article
         if st.button(title, key=f"recent_{id}"):
-            st.session_state["selected_article"] = {"title": title, "content": content, "label": label}
+                    st.session_state["selected_article"] = {"title": title, "content": content, "label": label, "confidence": confidence}
 
 # Display selected article in a dialog
 if st.session_state["selected_article"]:
