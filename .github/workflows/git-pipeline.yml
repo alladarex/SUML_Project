@@ -47,7 +47,7 @@ jobs:
       # Step 6: Run tests
       - name: Run tests
         run: |
-          pytest scripts/tests.py --maxfail=5 --disable-warnings
+          pytest scripts/tests.py --maxfail=6 --disable-warnings
 
       # Step 7: Notify deployment to Streamlit Cloud
       - name: Notify deployment to Streamlit Cloud
